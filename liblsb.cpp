@@ -20,7 +20,10 @@
 LSB_Data *lsb_data;
 
 #ifdef HAVE_LIKWID
-std::vector<long long> PMvalues(10);
+#include <sys/types.h>
+#include <unistd.h>
+std::vector<unsigned long> PMvalues(21);
+std::vector<unsigned long> tmp(21);
 #endif
 
 #ifdef HAVE_HRTIMER
@@ -44,18 +47,18 @@ void LSB_Res() {
   lsb_data->tlast = PAPI_get_real_usec();
   PAPI_start(lsb_data->eventset);
 #elif defined HAVE_LIKWID
-    int cpu_id;
-    cpu_id = likwid_getProcessorId();
-    PMvalues[0] = msr_read(cpu_id, MSR_AMD15_PMC0);
-    PMvalues[1] = msr_read(cpu_id, MSR_AMD15_PMC1);
-    PMvalues[2] = msr_read(cpu_id, MSR_AMD15_PMC2);
-    PMvalues[3] = msr_read(cpu_id, MSR_AMD15_PMC3);
-    PMvalues[4] = msr_read(cpu_id, MSR_AMD15_PMC4);
-    PMvalues[5] = msr_read(cpu_id, MSR_AMD15_PMC5);
-    PMvalues[6] = msr_read(cpu_id, MSR_AMD15_NB_PMC0);
-    PMvalues[7] = msr_read(cpu_id, MSR_AMD15_NB_PMC1);
-    PMvalues[8] = msr_read(cpu_id, MSR_AMD15_NB_PMC2);
-    PMvalues[9] = msr_read(cpu_id, MSR_AMD15_NB_PMC3);
+    perfmon_readCounters();
+
+    // currently only support 1 group
+    for (int e = 0; e < perfmon_getNumberOfEvents(0); ++e)
+    {
+      PMvalues[e] = 0;
+      for (int tid = 0; tid < perfmon_getNumberOfThreads(); ++tid)
+      {
+        PMvalues[e] += perfmon_getResult(0, e, tid);
+      }
+    }
+
     unsigned long long ticks;
     HRT_TIMESTAMP_T t;
     HRT_GET_TIMESTAMP(t);
@@ -256,18 +259,28 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
   PAPI_stop(lsb_data->eventset, &values[0]);
 #elif defined HAVE_LIKWID
     //std::vector<long long> values(10);
-    int cpu_id;
-    cpu_id = likwid_getProcessorId();
-    PMvalues[0] = msr_read(cpu_id, MSR_AMD15_PMC0) - PMvalues[0];
-    PMvalues[1] = msr_read(cpu_id, MSR_AMD15_PMC1) - PMvalues[1];
-    PMvalues[2] = msr_read(cpu_id, MSR_AMD15_PMC2) - PMvalues[2];
-    PMvalues[3] = msr_read(cpu_id, MSR_AMD15_PMC3) - PMvalues[3];
-    PMvalues[4] = msr_read(cpu_id, MSR_AMD15_PMC4) - PMvalues[4];
-    PMvalues[5] = msr_read(cpu_id, MSR_AMD15_PMC5) - PMvalues[5];
-    PMvalues[6] = msr_read(cpu_id, MSR_AMD15_NB_PMC0) - PMvalues[6];
-    PMvalues[7] = msr_read(cpu_id, MSR_AMD15_NB_PMC1) - PMvalues[7];
-    PMvalues[8] = msr_read(cpu_id, MSR_AMD15_NB_PMC2) - PMvalues[8];
-    PMvalues[9] = msr_read(cpu_id, MSR_AMD15_NB_PMC3) - PMvalues[9];
+    perfmon_readCounters();
+
+    // currently only support 1 group
+    for (int e = 0; e < perfmon_getNumberOfEvents(0); ++e)
+    {
+      tmp[e] = 0;
+      for (int tid = 0; tid < perfmon_getNumberOfThreads(); ++tid)
+      {
+        tmp[e] += perfmon_getResult(0, e, tid);
+      }
+    }
+
+    PMvalues[0] = tmp[0] - PMvalues[0];
+    PMvalues[1] = tmp[1] - PMvalues[1];
+    PMvalues[2] = tmp[2] - PMvalues[2];
+    PMvalues[3] = tmp[3] - PMvalues[3];
+    PMvalues[4] = tmp[4] - PMvalues[4];
+    PMvalues[5] = tmp[5] - PMvalues[5];
+    PMvalues[6] = tmp[6] - PMvalues[6];
+    PMvalues[7] = tmp[7] - PMvalues[7];
+    PMvalues[8] = tmp[8] - PMvalues[8];
+    PMvalues[9] = tmp[9] - PMvalues[9];
     unsigned long long ticks;
     HRT_TIMESTAMP_T t;
     HRT_GET_TIMESTAMP(t);
@@ -289,6 +302,9 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
 #elif defined HAVE_LIKWID
   t_rec rec = {PMvalues[0], PMvalues[1], PMvalues[2], PMvalues[3], PMvalues[4], \
                PMvalues[5], PMvalues[6], PMvalues[7], PMvalues[8], PMvalues[9], \
+               PMvalues[10], PMvalues[11], PMvalues[12], PMvalues[13], PMvalues[14], \
+               PMvalues[15], PMvalues[16], PMvalues[17], PMvalues[18], PMvalues[19], \
+               PMvalues[20],\
                measure, 0, id};
 #else
   t_rec rec = {measure, 0, id};
@@ -317,16 +333,18 @@ double LSB_Stop(unsigned int id, unsigned int reset) {
 
   tlast = PAPI_get_real_usec();
 #elif  HAVE_LIKWID
-    PMvalues[0] = msr_read(cpu_id, MSR_AMD15_PMC0);
-    PMvalues[1] = msr_read(cpu_id, MSR_AMD15_PMC1);
-    PMvalues[2] = msr_read(cpu_id, MSR_AMD15_PMC2);
-    PMvalues[3] = msr_read(cpu_id, MSR_AMD15_PMC3);
-    PMvalues[4] = msr_read(cpu_id, MSR_AMD15_PMC4);
-    PMvalues[5] = msr_read(cpu_id, MSR_AMD15_PMC5);
-    PMvalues[6] = msr_read(cpu_id, MSR_AMD15_NB_PMC0);
-    PMvalues[7] = msr_read(cpu_id, MSR_AMD15_NB_PMC1);
-    PMvalues[8] = msr_read(cpu_id, MSR_AMD15_NB_PMC2);
-    PMvalues[9] = msr_read(cpu_id, MSR_AMD15_NB_PMC3);
+    perfmon_readCounters();
+
+    // currently only support 1 group
+    for (int e = 0; e < perfmon_getNumberOfEvents(0); ++e)
+    {
+      PMvalues[e] = 0;
+      for (int tid = 0; tid < perfmon_getNumberOfThreads(); ++tid)
+      {
+        PMvalues[e] += perfmon_getResult(0, e, tid);
+      }
+    }
+
     HRT_GET_TIMESTAMP(t);
     HRT_GET_TIME(t, ticks);
     tlast =  HRT_GET_USEC(ticks);
@@ -490,6 +508,17 @@ void LSB_Flush() {
       fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter7);
       fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter8);
       fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter9);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter10);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter11);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter12);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter13);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter14);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter15);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter16);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter17);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter18);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter19);
+      fprintf(fp, "%16lli ", lsb_data->recs[i].PMcounter20);
   #endif
   #ifdef HAVE_UNWIND
       //printf("have unwind\n");
@@ -581,6 +610,17 @@ void LSB_Flush() {
       fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter7);
       fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter8);
       fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter9);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter10);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter11);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter12);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter13);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter14);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter15);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter16);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter17);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter18);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter19);
+      fprintf(fp, "%lli ", lsb_data->recs[i].PMcounter20);
   #endif
   #ifdef HAVE_UNWIND
       fprintf(fp, "%i ", (int)lsb_data->iptrace[i].size());
@@ -737,18 +777,17 @@ void LSB_Flush() {
 #if defined HAVE_PAPI
   //lsb_data->tstart = PAPI_get_real_usec();
 #elif defined HAVE_LIKWID
-    int cpu_id;
-    cpu_id = likwid_getProcessorId();
-    PMvalues[0] = msr_read(cpu_id, MSR_AMD15_PMC0);
-    PMvalues[1] = msr_read(cpu_id, MSR_AMD15_PMC1);
-    PMvalues[2] = msr_read(cpu_id, MSR_AMD15_PMC2);
-    PMvalues[3] = msr_read(cpu_id, MSR_AMD15_PMC3);
-    PMvalues[4] = msr_read(cpu_id, MSR_AMD15_PMC4);
-    PMvalues[5] = msr_read(cpu_id, MSR_AMD15_PMC5);
-    PMvalues[6] = msr_read(cpu_id, MSR_AMD15_NB_PMC0);
-    PMvalues[7] = msr_read(cpu_id, MSR_AMD15_NB_PMC1);
-    PMvalues[8] = msr_read(cpu_id, MSR_AMD15_NB_PMC2);
-    PMvalues[9] = msr_read(cpu_id, MSR_AMD15_NB_PMC3);
+    perfmon_readCounters();
+
+    // currently only support 1 group
+    for (int e = 0; e < perfmon_getNumberOfEvents(0); ++e)
+    {
+      PMvalues[e] = 0;
+      for (int tid = 0; tid < perfmon_getNumberOfThreads(); ++tid)
+      {
+        PMvalues[e] += perfmon_getResult(0, e, tid);
+      }
+    }
     HRT_GET_TIMESTAMP(t);
     HRT_GET_TIME(t, ticks);
     //lsb_data->tstart =  HRT_GET_USEC(ticks);
@@ -789,7 +828,9 @@ void LSB_Finalize() {
 #endif
 #ifdef HAVE_LIKWID
   perfmon_stopCounters();
-  msr_finalize();
+  // int cpu_id;
+  // cpu_id = likwid_getProcessorId();
+  // access_x86_msr_finalize(cpu_id);
 #endif
 }
 
@@ -968,28 +1009,24 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   FILE *OUTSTREAM = stdout;
   int numThreads=1;
   int threads[1];
-  char *myeventstring;
-
 
 // start likwid things
-  cpuid_init();
-  // printf("cpuid_topology.numHWThreads %d\n",cpuid_topology.numHWThreads);
-  // numa_init(); // do we need this one ?
-  // affinity_init(); // skip this, let aprun pin
-  msr_init();
-
   threads[0]=likwid_getProcessorId();
-  perfmon_init(numThreads,threads,OUTSTREAM);
+  // set likwid pid to current pid
+  char execpid[20];
+  snprintf(execpid, 19, "%d", getpid());
+  setenv("LIKWID_PERF_PID", execpid, 1);
+
+  perfmon_init(numThreads,threads);
   timer_init();
 
-// Set the event set string
-  myeventstring=(char *)malloc(60*sizeof(char));
-  sprintf(myeventstring,"UNC_L3_CACHE_MISS_CORE_%d:UPMC%d",likwid_getProcessorId()%8,lsb_data->r%4);
-  printf("LIKWID: rank %d event %s\n",lsb_data->r,myeventstring);
-  bstring eventString = bfromcstr(myeventstring);
-  perfmon_setupEventSet(eventString);
+// Set up event group string
+  env = getenv("LSB_LIKWID_G");
+  int group_id;
+  group_id = perfmon_addEventSet(env);
+  perfmon_setupCounters(group_id);
   perfmon_startCounters();
-  free(myeventstring);
+  
 #endif
 
   if(lsb_data->print) {
@@ -1031,18 +1068,17 @@ void LSB_Init(const char* projname, int autoprof_interval /* in ms, off if 0 */)
   PAPI_start(lsb_data->eventset);
   lsb_data->tlast = lsb_data->tstart = PAPI_get_real_usec();
 #elif defined HAVE_LIKWID
-    int cpu_id;
-    cpu_id = likwid_getProcessorId();
-    PMvalues[0] = msr_read(cpu_id, MSR_AMD15_PMC0);
-    PMvalues[1] = msr_read(cpu_id, MSR_AMD15_PMC1);
-    PMvalues[2] = msr_read(cpu_id, MSR_AMD15_PMC2);
-    PMvalues[3] = msr_read(cpu_id, MSR_AMD15_PMC3);
-    PMvalues[4] = msr_read(cpu_id, MSR_AMD15_PMC4);
-    PMvalues[5] = msr_read(cpu_id, MSR_AMD15_PMC5);
-    PMvalues[6] = msr_read(cpu_id, MSR_AMD15_NB_PMC0);
-    PMvalues[7] = msr_read(cpu_id, MSR_AMD15_NB_PMC1);
-    PMvalues[8] = msr_read(cpu_id, MSR_AMD15_NB_PMC2);
-    PMvalues[9] = msr_read(cpu_id, MSR_AMD15_NB_PMC3);
+    // cpu_id = likwid_getProcessorId();
+    // access_x86_msr_read(cpu_id, MSR_AMD15_PMC0, &PMvalues[0]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_PMC1, &PMvalues[1]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_PMC2, &PMvalues[2]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_PMC3, &PMvalues[3]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_PMC4, &PMvalues[4]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_PMC5, &PMvalues[5]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_NB_PMC0, &PMvalues[6]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_NB_PMC1, &PMvalues[7]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_NB_PMC2, &PMvalues[8]);
+    // access_x86_msr_read(cpu_id, MSR_AMD15_NB_PMC3, &PMvalues[9]);
     HRT_INIT(0, liblsb_g_timerfreq);
     unsigned long long ticks;
     HRT_TIMESTAMP_T t;

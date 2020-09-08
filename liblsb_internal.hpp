@@ -52,7 +52,8 @@
 extern "C" {
 #include <bstrlib.h>
 #include <cpuid.h>
-#include <msr.h>
+// #include <msr.h>
+#include <access_x86_msr.h>
 #include <numa.h>
 #include <perfmon.h>
 #include <timer.h>
@@ -82,6 +83,17 @@ typedef struct {
   long long PMcounter7; ///< likwid MSR counter values
   long long PMcounter8; ///< likwid MSR counter values
   long long PMcounter9; ///< likwid MSR counter values
+  long long PMcounter10; ///< likwid MSR counter values
+  long long PMcounter11; ///< likwid MSR counter values
+  long long PMcounter12; ///< likwid MSR counter values
+  long long PMcounter13; ///< likwid MSR counter values
+  long long PMcounter14; ///< likwid MSR counter values
+  long long PMcounter15; ///< likwid MSR counter values
+  long long PMcounter16; ///< likwid MSR counter values
+  long long PMcounter17; ///< likwid MSR counter values
+  long long PMcounter18; ///< likwid MSR counter values
+  long long PMcounter19; ///< likwid MSR counter values
+  long long PMcounter20; ///< likwid MSR counter values
 #endif
   double tduration; ///< the duration of the current epoch
   unsigned long toverhead; ///< the duration (overhead) of profiling for this epoch
