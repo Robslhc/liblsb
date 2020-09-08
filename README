@@ -27,4 +27,7 @@ Compiling under Cray:
  - configure with: MPICC=cc MPICXX=CC ./configure --prefix=$(pwd)/build/ --with-mpi --with-papi 
  - make; make install;
 
-
+Usage for likwid backend
+========================
+Compile: ./configure --prefix=$(PATH_TO_INSTALL) --with-mpi -- without-papi CC=$(CC) CXX=$(CXX) MPICC=$(MPICC) MPICXX=$(MPICXX) CFLAGS=-DHAVE_LIKWID CXXFLAGS=-DHAVE_LIKWID CPPFLAGS=-I(LIKWID_SRC)/includes LIBS=-llikwid
+Run: set the environment variable LSB_LIKWID_G for likwid event groups
